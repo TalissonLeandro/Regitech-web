@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>a</title>
+    <link rel="stylesheet" href="login-styles.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-content">
+            <div class="login-box">
+                <div class="login-header">
+                    <h1>Sistema de Controle de Equipamentos</h1>
+                    <p>Faça login para acessar o sistema</p>
+                </div>
+
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="username">Usuário/Email:</label>
+                        <input type="text" id="username" required placeholder="Digite seu usuário ou email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Senha:</label>
+                        <input type="password" id="password" required placeholder="Digite sua senha">
+                    </div>
+
+                    <button type="submit" class="login-btn">Entrar</button>
+
+                    <div id="errorMessage" class="error-message"></div>
+                </form>
+
+                <div class="demo-credentials">
+                    <h3>Credenciais de demonstração:</h3>
+                    <p><strong>Usuário:</strong> admin</p>
+                    <p><strong>Senha:</strong> 123456</p>
+                    <p><strong>Usuário:</strong> user</p>
+                    <p><strong>Senha:</strong> user123</p>
+                </div>
+
+                <div class="login-links">
+                    <p>Não tem uma conta? <a href="register.html">Cadastre-se</a></p>
+                </div>
+            </div>
+
+            <div class="logo-section">
+                <img src="InveTI (2).png" alt="RegTech Logo" class="login-logo">
+            </div>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Equipamentos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="ai-styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="InveTI (2).png" alt="RegTech Logo" class="logo">
+                    <h1>Sistema de Controle de Equipamentos</h1>
+                </div>
+                <div class="user-info">
+                    <span id="welcomeMessage"></span>
+                    <button id="logoutBtn" class="logout-btn">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="form-section">
+                <h2>Cadastrar Equipamento</h2>
+                <form id="equipmentForm">
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Equipamento:</label>
+                        <select id="tipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="computador">Computador</option>
+                            <option value="monitor">Monitor</option>
+                            <option value="impressora">Impressora</option>
+                            <option value="periferico">Teclado</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="patrimonio">Número de Patrimônio:</label>
+                        <input type="text" id="patrimonio" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="usuario">Usuário Responsável:</label>
+                        <input type="text" id="usuario" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="localizacao">Localização:</label>
+                        <input type="text" id="localizacao" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status:</label>
+                        <select id="status" required>
+                            <option value="">Selecione...</option>
+                            <option value="em-uso">Em Uso</option>
+                            <option value="manutencao">Manutenção</option>
+                            <option value="disponivel">Disponível</option>
+                        </select>
+                    </div>
+
+                    <button type="submit">Cadastrar Equipamento</button>
+                </form>
+            </section>
+
+            <section class="list-section">
+                <h2>Equipamentos Cadastrados</h2>
+                <div class="filters">
+                    <input type="text" id="searchInput" placeholder="Buscar por patrimônio, usuário ou localização...">
+                    <select id="filterStatus">
+                        <option value="">Todos os status</option>
+                        <option value="em-uso">Em Uso</option>
+                        <option value="manutencao">Manutenção</option>
+                        <option value="disponivel">Disponível</option>
+                    </select>
+                    <select id="filterType">
+                        <option value="">Todos os tipos</option>
+                        <option value="computador">Computador</option>
+                        <option value="monitor">Monitor</option>
+                        <option value="impressora">Impressora</option>
+                        <option value="periferico">Teclado</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div id="equipmentList"></div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyASd0W1X8im3_h5GSWEcJ079pQso73s8U4",
+            authDomain: "regtech-b3023.firebaseapp.com",
+            projectId: "regtech-b3023",
+            storageBucket: "regtech-b3023.firebasestorage.app",
+            messagingSenderId: "3715308083",
+            appId: "1:3715308083:web:e44dab187b5d94eb326146"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.firebaseModules = { collection, addDoc, getDocs, deleteDoc, doc, setDoc, query, orderBy };
+    </script>
+    <script src="script.js"></script>
+    <script src="ai-assistant.js"></script>
+</body>
+
+</html>
