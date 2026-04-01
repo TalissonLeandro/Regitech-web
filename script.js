@@ -132,4 +132,5 @@ class EquipmentManager {
 let equipmentManager;
 document.addEventListener('DOMContentLoaded', () => {
     equipmentManager = new EquipmentManager();
+    window.equipmentManager = equipmentManager;
 });

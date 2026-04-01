@@ -1,408 +1,337 @@
 class AIAssistant {
     constructor() {
-        this.apiKey = localStorage.getItem('geminiApiKey') || '';
+        // Limpa key corrompida (duplicada) do localStorage
+        const stored = localStorage.getItem('geminiApiKey') || '';
+        const match = stored.match(/AIza[A-Za-z0-9_\-]{35}/);
+        if (stored && match && stored !== match[0]) {
+            localStorage.setItem('geminiApiKey', match[0]);
+        }
+        this.apiKey = match ? match[0] : stored;
         this.initializeUI();
         this.setupEventListeners();
     }
 
     initializeUI() {
-        const aiHTML = `
-            <div class="ai-widget" id="aiWidget">
-                <button class="ai-toggle" id="aiToggle">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7A1,1 0 0,0 14,8H18A1,1 0 0,0 19,7V5.73C18.4,5.39 18,4.74 18,4A2,2 0 0,1 20,2A2,2 0 0,1 22,4C22,4.74 21.6,5.39 21,5.73V7A3,3 0 0,1 18,10H14A3,3 0 0,1 11,7V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/>
-                    </svg>
-                    <span>IA Gemini</span>
-                </button>
-                
-                <div class="ai-panel" id="aiPanel">
-                    <div class="ai-header">
-                        <h3>🤖 Assistente Gemini AI</h3>
-                        <button class="ai-close" id="aiClose">×</button>
-                    </div>
+        const panel = document.createElement('div');
+        panel.id = 'aiWidget';
+        panel.className = 'ai-widget';
+        panel.innerHTML = `
+            <button class="ai-toggle" id="aiToggle">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7A1,1 0 0,0 14,8H18A1,1 0 0,0 19,7V5.73C18.4,5.39 18,4.74 18,4A2,2 0 0,1 20,2A2,2 0 0,1 22,4C22,4.74 21.6,5.39 21,5.73V7A3,3 0 0,1 18,10H14A3,3 0 0,1 11,7V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/>
+                </svg>
+                IA Gemini
+            </button>
 
-                    <div class="ai-config" id="aiConfig">
-                        <label>API Key do Gemini:</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <input type="password" id="apiKeyInput" placeholder="Cole sua API key aqui..." value="${this.apiKey}">
-                            <button id="saveApiKey">Salvar</button>
-                        </div>
-                        <small id="apiKeyStatus">${this.apiKey ? '✅ API Key configurada' : '⚠️ Insira sua API Key para usar a IA'}</small>
-                    </div>
-                    
-                    <div class="ai-features">
-                        <h4>Funcionalidades IA:</h4>
-                        <button class="ai-feature-btn" data-feature="analyze">📊 Analisar Equipamentos</button>
-                        <button class="ai-feature-btn" data-feature="report">📋 Gerar Relatório</button>
-                        <button class="ai-feature-btn" data-feature="predict">🔮 Previsões</button>
-                        <button class="ai-feature-btn" data-feature="chat">💬 Chat Inteligente</button>
-                    </div>
-                    
-                    <div class="ai-chat" id="aiChat" style="display: none;">
-                        <div class="ai-messages" id="aiMessages"></div>
-                        <div class="ai-input-area">
-                            <input type="text" id="aiInput" placeholder="Pergunte sobre os equipamentos...">
-                            <button id="aiSend">Enviar</button>
-                        </div>
-                    </div>
-                    
-                    <div class="ai-results" id="aiResults"></div>
+            <div class="ai-panel" id="aiPanel" style="display:none;">
+                <div class="ai-header">
+                    <h3>🤖 Assistente Gemini AI</h3>
+                    <button class="ai-close" id="aiClose">×</button>
                 </div>
+
+                <div class="ai-config">
+                    <label>API Key do Gemini:</label>
+                    <div style="display:flex;flex-direction:row;gap:8px;align-items:center;width:100%;box-sizing:border-box;margin-top:8px;">
+                        <input type="password" id="apiKeyInput" placeholder="Cole sua API key aqui..." style="flex:1 1 auto;min-width:0;padding:8px 12px;border:2px solid #ddd;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;">
+                        <button id="saveApiKey" style="flex:0 0 auto;background:#667eea;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">Salvar</button>
+                    </div>
+                    <small id="apiKeyStatus"></small>
+                </div>
+
+                <div class="ai-features">
+                    <h4>Funcionalidades IA:</h4>
+                    <button class="ai-feature-btn" data-feature="analyze">📊 Analisar Equipamentos</button>
+                    <button class="ai-feature-btn" data-feature="report">📋 Gerar Relatório</button>
+                    <button class="ai-feature-btn" data-feature="predict">🔮 Previsões</button>
+                    <button class="ai-feature-btn" data-feature="chat">💬 Chat Inteligente</button>
+                </div>
+
+                <div class="ai-results" id="aiResults"></div>
             </div>
         `;
+        document.body.appendChild(panel);
 
-        document.body.insertAdjacentHTML('beforeend', aiHTML);
+        // Chat fullscreen separado
+        const chat = document.createElement('div');
+        chat.id = 'chatFullscreen';
+        chat.className = 'chat-fullscreen';
+        chat.style.display = 'none';
+        chat.innerHTML = `
+            <div class="chat-fullscreen-header">
+                <h2>🤖 Chat Gemini AI</h2>
+                <button id="chatBack">← Voltar</button>
+            </div>
+            <div class="chat-fullscreen-messages" id="chatMessages"></div>
+            <div class="chat-fullscreen-input">
+                <input type="text" id="chatInput" placeholder="Digite sua mensagem...">
+                <button id="chatSend">Enviar</button>
+            </div>
+        `;
+        document.body.appendChild(chat);
+
+        // Preenche o input com a key salva e atualiza status
+        this.updateKeyStatus();
+    }
+
+    updateKeyStatus() {
+        const input = document.getElementById('apiKeyInput');
+        const status = document.getElementById('apiKeyStatus');
+        if (input) input.value = this.apiKey;
+        if (status) {
+            status.textContent = this.apiKey ? '✅ API Key configurada' : '⚠️ Insira sua API Key';
+        }
     }
 
     setupEventListeners() {
         document.getElementById('aiToggle').addEventListener('click', () => this.togglePanel());
         document.getElementById('aiClose').addEventListener('click', () => this.closePanel());
         document.getElementById('saveApiKey').addEventListener('click', () => this.saveApiKey());
-        document.getElementById('aiSend').addEventListener('click', () => this.sendMessage());
-        document.getElementById('aiInput').addEventListener('keypress', (e) => {
+        document.getElementById('chatBack').addEventListener('click', () => this.closeChat());
+        document.getElementById('chatSend').addEventListener('click', () => this.sendMessage());
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
         });
-
         document.querySelectorAll('.ai-feature-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.executeFeature(e.target.dataset.feature));
+            btn.addEventListener('click', (e) => {
+                this.executeFeature(e.currentTarget.dataset.feature);
+            });
         });
-    }
-
-    saveApiKey() {
-        const key = document.getElementById('apiKeyInput').value.trim();
-        if (!key) {
-            alert('Insira uma API Key válida!');
-            return;
-        }
-        this.apiKey = key;
-        localStorage.setItem('geminiApiKey', key);
-        document.getElementById('apiKeyStatus').textContent = '✅ API Key configurada';
-        alert('API Key salva com sucesso!');
     }
 
     togglePanel() {
         const panel = document.getElementById('aiPanel');
-        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
 
     closePanel() {
-        document.getElementById('aiPanel').style.display = 'none';
+        const results = document.getElementById('aiResults');
+        // Se tiver conteúdo nos resultados, limpa e volta para tela inicial
+        if (results && results.innerHTML.trim() !== '') {
+            results.innerHTML = '';
+        } else {
+            document.getElementById('aiPanel').style.display = 'none';
+        }
+    }
+
+    saveApiKey() {
+        const raw = document.getElementById('apiKeyInput').value.trim();
+        if (!raw) {
+            alert('Insira uma API Key válida!');
+            return;
+        }
+        // Remove duplicatas: pega só a última ocorrência da key real
+        // A key do Gemini começa com "AIza" e tem 39 chars
+        const match = raw.match(/AIza[A-Za-z0-9_\-]{35}/);
+        const key = match ? match[0] : raw;
+
+        localStorage.removeItem('geminiApiKey');
+        this.apiKey = key;
+        localStorage.setItem('geminiApiKey', key);
+        document.getElementById('apiKeyInput').value = key;
+        this.updateKeyStatus();
+        alert('✅ API Key salva com sucesso!');
     }
 
     async executeFeature(feature) {
+        if (feature === 'chat') {
+            this.closePanel();
+            this.openChat();
+            return;
+        }
+
         if (!this.apiKey) {
-            document.getElementById('aiResults').innerHTML = '<div class="error">⚠️ Configure sua API Key do Gemini antes de usar a IA.</div>';
+            document.getElementById('aiResults').innerHTML =
+                '<div class="ai-error">⚠️ Configure sua API Key primeiro e clique em Salvar.</div>';
             return;
         }
 
-        const resultsDiv = document.getElementById('aiResults');
-        resultsDiv.innerHTML = '<div class="loading">🤖 Processando com Gemini AI...</div>';
+        document.getElementById('aiResults').innerHTML = '<div class="ai-loading">🤖 Processando...</div>';
 
         try {
-            switch (feature) {
-                case 'analyze':
-                    await this.analyzeEquipments();
-                    break;
-                case 'report':
-                    await this.generateReport();
-                    break;
-                case 'predict':
-                    await this.makePredictions();
-                    break;
-                case 'chat':
-                    this.showChat();
-                    break;
-            }
+            if (feature === 'analyze') await this.analyzeEquipments();
+            else if (feature === 'report') await this.generateReport();
+            else if (feature === 'predict') await this.makePredictions();
         } catch (error) {
-            resultsDiv.innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            document.getElementById('aiResults').innerHTML =
+                `<div class="ai-error">❌ Erro: ${error.message}</div>`;
         }
     }
 
-    async analyzeEquipments() {
-        const equipments = window.equipmentManager?.equipments || [];
-        
-        if (equipments.length === 0) {
-            document.getElementById('aiResults').innerHTML = '<div class="info">Nenhum equipamento para analisar</div>';
-            return;
+    async callGemini(prompt) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${res.status}`);
         }
 
-        const basicStats = this.getBasicStats(equipments);
-        
-        const prompt = `Analise os seguintes dados de equipamentos de TI e forneça insights profissionais:
-
-Dados dos equipamentos:
-${JSON.stringify(equipments.slice(0, 10), null, 2)}
-
-Estatísticas básicas:
-- Total: ${basicStats.total} equipamentos
-- Por tipo: ${JSON.stringify(basicStats.byType)}
-- Por status: ${JSON.stringify(basicStats.byStatus)}
-- Por localização: ${JSON.stringify(basicStats.byLocation)}
-
-Forneça uma análise profissional incluindo:
-1. Principais insights sobre o inventário
-2. Possíveis problemas identificados
-3. Recomendações de melhoria
-4. Sugestões de otimização
-
-Responda em português de forma clara e objetiva.`;
-
-        try {
-            const aiAnalysis = await this.callGemini(prompt);
-            this.displayAnalysis(basicStats, aiAnalysis);
-        } catch (error) {
-            this.displayAnalysis(basicStats, 'Erro ao obter análise da IA: ' + error.message);
-        }
+        const data = await res.json();
+        return data.candidates[0].content.parts[0].text;
     }
 
-    getBasicStats(equipments) {
-        const stats = {
-            total: equipments.length,
-            byType: {},
-            byStatus: {},
-            byLocation: {},
-            recentlyAdded: 0
-        };
-
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
+    getEquipmentStats() {
+        // Lê direto do localStorage - fonte mais confiável
+        let equipments = [];
+        try {
+            const raw = localStorage.getItem('equipments');
+            equipments = raw ? JSON.parse(raw) : [];
+        } catch(e) {
+            equipments = [];
+        }
+        // Fallback para o manager em memória
+        if (equipments.length === 0 && window.equipmentManager?.equipments?.length > 0) {
+            equipments = window.equipmentManager.equipments;
+        }
+        const stats = { total: equipments.length, byType: {}, byStatus: {}, byLocation: {} };
         equipments.forEach(eq => {
             stats.byType[eq.tipo] = (stats.byType[eq.tipo] || 0) + 1;
             stats.byStatus[eq.status] = (stats.byStatus[eq.status] || 0) + 1;
             stats.byLocation[eq.localizacao] = (stats.byLocation[eq.localizacao] || 0) + 1;
-            
-            const addedDate = new Date(eq.dataCadastro.split('/').reverse().join('-'));
-            if (addedDate > oneWeekAgo) {
-                stats.recentlyAdded++;
-            }
         });
-
-        return stats;
+        return { equipments, stats };
     }
 
-    async callGemini(prompt) {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }]
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro na API: ${response.status}`);
+    async analyzeEquipments() {
+        const { stats } = this.getEquipmentStats();
+        if (stats.total === 0) {
+            document.getElementById('aiResults').innerHTML =
+                '<div class="ai-info">ℹ️ Nenhum equipamento cadastrado para analisar.</div>';
+            return;
         }
 
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-    }
+        const prompt = `Analise este inventário de equipamentos de TI e forneça insights em português:
+Total: ${stats.total} equipamentos
+Por tipo: ${JSON.stringify(stats.byType)}
+Por status: ${JSON.stringify(stats.byStatus)}
+Por localização: ${JSON.stringify(stats.byLocation)}
+Forneça insights principais, problemas identificados e recomendações. Máximo 5 tópicos.`;
 
-    displayAnalysis(stats, aiAnalysis) {
-        const html = `
-            <div class="analysis-results">
+        const result = await this.callGemini(prompt);
+        document.getElementById('aiResults').innerHTML = `
+            <div class="ai-result-box">
                 <h4>📊 Análise dos Equipamentos</h4>
-                
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <span class="stat-number">${stats.total}</span>
-                        <span class="stat-label">Total de Equipamentos</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${stats.recentlyAdded}</span>
-                        <span class="stat-label">Adicionados (7 dias)</span>
-                    </div>
+                <div class="ai-stats-grid">
+                    <div class="ai-stat"><span>${stats.total}</span>Total</div>
+                    <div class="ai-stat"><span>${stats.byStatus['em-uso'] || 0}</span>Em Uso</div>
+                    <div class="ai-stat"><span>${stats.byStatus['disponivel'] || 0}</span>Disponíveis</div>
+                    <div class="ai-stat"><span>${stats.byStatus['manutencao'] || 0}</span>Manutenção</div>
                 </div>
-
-                <div class="breakdown">
-                    <h5>Por Tipo:</h5>
-                    ${Object.entries(stats.byType).map(([type, count]) => 
-                        `<div class="breakdown-item">${type}: ${count}</div>`
-                    ).join('')}
-                </div>
-
-                <div class="breakdown">
-                    <h5>Por Status:</h5>
-                    ${Object.entries(stats.byStatus).map(([status, count]) => 
-                        `<div class="breakdown-item">${status}: ${count}</div>`
-                    ).join('')}
-                </div>
-
-                <div class="ai-insights">
-                    <h5>🤖 Análise Gemini AI:</h5>
-                    <div class="ai-text">${aiAnalysis.replace(/\n/g, '<br>')}</div>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('aiResults').innerHTML = html;
+                <div class="ai-text">${result.replace(/\n/g, '<br>')}</div>
+            </div>`;
     }
 
     async generateReport() {
-        const equipments = window.equipmentManager?.equipments || [];
-        
-        const prompt = `Gere um relatório executivo profissional baseado nos seguintes dados de equipamentos:
+        const { stats } = this.getEquipmentStats();
 
-${JSON.stringify(equipments, null, 2)}
+        const prompt = `Gere um relatório executivo profissional em português para este inventário de TI:
+Total: ${stats.total} equipamentos
+Por tipo: ${JSON.stringify(stats.byType)}
+Por status: ${JSON.stringify(stats.byStatus)}
+Por localização: ${JSON.stringify(stats.byLocation)}
+Inclua: resumo executivo, análise de distribuição, status do inventário e recomendações estratégicas.`;
 
-O relatório deve incluir:
-1. Resumo executivo
-2. Análise da distribuição de equipamentos
-3. Status atual do inventário
-4. Recomendações estratégicas
-5. Próximos passos sugeridos
-
-Formate como um relatório profissional em português.`;
-
-        try {
-            const report = await this.callGemini(prompt);
-            
-            const html = `
-                <div class="report-results">
-                    <h4>📋 Relatório Executivo</h4>
-                    <p><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-                    
-                    <div class="report-content">
-                        ${report.replace(/\n/g, '<br>')}
-                    </div>
-
-                    <button onclick="aiAssistant.downloadReport()" class="download-btn">📥 Baixar Dados CSV</button>
-                </div>
-            `;
-
-            document.getElementById('aiResults').innerHTML = html;
-        } catch (error) {
-            document.getElementById('aiResults').innerHTML = `<div class="error">Erro ao gerar relatório: ${error.message}</div>`;
-        }
-    }
-
-    downloadReport() {
-        const equipments = window.equipmentManager?.equipments || [];
-        const csvContent = this.generateCSV(equipments);
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `relatorio_equipamentos_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
-
-    generateCSV(equipments) {
-        const headers = ['Patrimônio', 'Tipo', 'Usuário', 'Localização', 'Status', 'Data Cadastro'];
-        const rows = equipments.map(eq => [
-            eq.patrimonio,
-            eq.tipo,
-            eq.usuario,
-            eq.localizacao,
-            eq.status,
-            eq.dataCadastro
-        ]);
-
-        return [headers, ...rows].map(row => row.join(',')).join('\n');
+        const result = await this.callGemini(prompt);
+        document.getElementById('aiResults').innerHTML = `
+            <div class="ai-result-box">
+                <h4>📋 Relatório Executivo</h4>
+                <small>Gerado em: ${new Date().toLocaleString('pt-BR')}</small>
+                <div class="ai-text">${result.replace(/\n/g, '<br>')}</div>
+                <button class="ai-download-btn" onclick="window.aiAssistant.downloadCSV()">📥 Baixar CSV</button>
+            </div>`;
     }
 
     async makePredictions() {
-        const equipments = window.equipmentManager?.equipments || [];
-        
-        const prompt = `Baseado nos dados dos equipamentos abaixo, faça previsões e recomendações:
+        const { stats } = this.getEquipmentStats();
 
-${JSON.stringify(equipments, null, 2)}
+        const prompt = `Com base neste inventário de TI, faça previsões e recomendações preventivas em português:
+Total: ${stats.total} equipamentos
+Por tipo: ${JSON.stringify(stats.byType)}
+Por status: ${JSON.stringify(stats.byStatus)}
+Por localização: ${JSON.stringify(stats.byLocation)}
+Forneça: previsões de manutenção, alertas preventivos e sugestões de otimização.`;
 
-Analise e forneça:
-1. Equipamentos que podem precisar de manutenção em breve
-2. Padrões de utilização identificados
-3. Recomendações de otimização
-4. Alertas preventivos
-5. Sugestões de redistribuição
-
-Seja específico e prático nas recomendações.`;
-
-        try {
-            const predictions = await this.callGemini(prompt);
-            
-            const html = `
-                <div class="predictions-results">
-                    <h4>🔮 Previsões e Recomendações</h4>
-                    
-                    <div class="prediction-content">
-                        ${predictions.replace(/\n/g, '<br>')}
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('aiResults').innerHTML = html;
-        } catch (error) {
-            document.getElementById('aiResults').innerHTML = `<div class="error">Erro ao gerar previsões: ${error.message}</div>`;
-        }
+        const result = await this.callGemini(prompt);
+        document.getElementById('aiResults').innerHTML = `
+            <div class="ai-result-box">
+                <h4>🔮 Previsões e Recomendações</h4>
+                <div class="ai-text">${result.replace(/\n/g, '<br>')}</div>
+            </div>`;
     }
 
-    showChat() {
-        document.getElementById('aiChat').style.display = 'block';
-        document.getElementById('aiResults').innerHTML = '';
-        this.addChatMessage('Olá! Sou o assistente Gemini AI. Posso ajudar com análises dos equipamentos, relatórios e responder suas perguntas. O que você gostaria de saber?', false);
+    downloadCSV() {
+        const { equipments } = this.getEquipmentStats();
+        const headers = ['Patrimônio', 'Tipo', 'Usuário', 'Localização', 'Status', 'Data Cadastro'];
+        const rows = equipments.map(eq => [
+            eq.patrimonio, eq.tipo, eq.usuario, eq.localizacao, eq.status, eq.dataCadastro
+        ]);
+        const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
+        a.download = `equipamentos_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+    }
+
+    openChat() {
+        const screen = document.getElementById('chatFullscreen');
+        screen.style.cssText = 'display:flex;position:fixed;top:0;left:0;right:0;bottom:0;flex-direction:column;background:#f0f2f5;z-index:2000;';
+        document.getElementById('chatMessages').innerHTML = '';
+        this.addChatMessage('Olá! Sou o assistente Gemini AI. Como posso ajudar com os equipamentos?', false);
+        document.getElementById('chatInput').focus();
+    }
+
+    closeChat() {
+        document.getElementById('chatFullscreen').style.cssText = 'display:none;';
     }
 
     async sendMessage() {
-        const input = document.getElementById('aiInput');
+        if (!this.apiKey) {
+            this.addChatMessage('⚠️ Configure sua API Key no painel da IA antes de usar o chat.', false);
+            return;
+        }
+
+        const input = document.getElementById('chatInput');
         const message = input.value.trim();
-        
         if (!message) return;
 
         this.addChatMessage(message, true);
         input.value = '';
 
-        this.addChatMessage('🤖 Pensando...', false, 'typing');
+        const typingId = 'typing-' + Date.now();
+        this.addChatMessage('🤖 Digitando...', false, typingId);
 
         try {
-            const response = await this.generateChatResponse(message);
-            const messages = document.getElementById('aiMessages');
-            const typingMsg = messages.querySelector('.typing');
-            if (typingMsg) typingMsg.remove();
-            
+            const { stats } = this.getEquipmentStats();
+            const prompt = `Você é um assistente de gestão de equipamentos de TI. Responda em português de forma clara e objetiva (máximo 3 parágrafos).
+Dados do inventário: ${stats.total} equipamentos. Por status: ${JSON.stringify(stats.byStatus)}. Por tipo: ${JSON.stringify(stats.byType)}.
+Pergunta: ${message}`;
+
+            const response = await this.callGemini(prompt);
+            document.getElementById(typingId)?.remove();
             this.addChatMessage(response, false);
         } catch (error) {
-            const messages = document.getElementById('aiMessages');
-            const typingMsg = messages.querySelector('.typing');
-            if (typingMsg) typingMsg.remove();
-            
-            this.addChatMessage('Desculpe, ocorreu um erro. Tente novamente.', false);
+            document.getElementById(typingId)?.remove();
+            this.addChatMessage(`❌ Erro: ${error.message}. Verifique sua API Key.`, false);
         }
     }
 
-    addChatMessage(message, isUser, className = '') {
-        const messagesDiv = document.getElementById('aiMessages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${isUser ? 'user' : 'ai'} ${className}`;
-        messageDiv.innerHTML = message.replace(/\n/g, '<br>');
-        messagesDiv.appendChild(messageDiv);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    async generateChatResponse(message) {
-        const equipments = window.equipmentManager?.equipments || [];
-        
-        const prompt = `Você é um assistente especializado em gestão de equipamentos de TI. 
-        
-Dados atuais dos equipamentos:
-${JSON.stringify(equipments.slice(0, 5), null, 2)}
-
-Pergunta do usuário: "${message}"
-
-Responda de forma clara, objetiva e útil. Se a pergunta for sobre os equipamentos, use os dados fornecidos. Se for uma pergunta geral sobre gestão de TI, forneça orientações práticas.
-
-Mantenha a resposta concisa (máximo 3 parágrafos).`;
-
-        return await this.callGemini(prompt);
+    addChatMessage(text, isUser, id = '') {
+        const div = document.createElement('div');
+        div.className = `chat-msg ${isUser ? 'user' : 'bot'}`;
+        if (id) div.id = id;
+        div.innerHTML = text.replace(/\n/g, '<br>');
+        const container = document.getElementById('chatMessages');
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
     }
 }
 
-// Inicializar assistente IA
 document.addEventListener('DOMContentLoaded', () => {
     window.aiAssistant = new AIAssistant();
 });
