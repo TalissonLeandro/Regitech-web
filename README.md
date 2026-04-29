@@ -1,4 +1,4 @@
-# Reigtech - Sistema de Controle de Equipamentos de TI
+# Regitech - Sistema de Controle de Equipamentos de TI
 
 Sistema web para gerenciamento de ativos de TI, com autenticação de usuários e assistente de inteligência artificial integrado via Google Gemini.
 
